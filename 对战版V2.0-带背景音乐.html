@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>单词消消乐-对战版</title>
+    <style>
+           /* 新增卡片隐藏样式 */
+           .matched {
+            animation: disappear 0.3s forwards;
+            pointer-events: none;
+            visibility: hidden;
+            opacity: 0;
+        }
+        @keyframes disappear {
+            0% { transform: scale(1); opacity: 1; visibility: visible; }
+            100% { transform: scale(0); opacity: 0; visibility: hidden; }
+        }
+        body { 
+            font-family: '幼圆', 'Comic Sans MS', cursive; 
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); 
+            margin: 0; 
+            min-height: 100vh; 
+            padding: 10px; 
+            touch-action: none;
+        }
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            height: 95vh; 
+        }
+        .control-panel { 
+            text-align: center; 
+            margin-bottom: 15px; 
+        }
+        .btn-group { 
+            display: flex; 
+            gap: 10px; 
+            justify-content: center; 
+            margin-bottom: 15px; 
+            flex-wrap: wrap; 
+        }
+        .game-btn { 
+            background: linear-gradient(145deg, #6c5ce7, #a363d9); 
+            color: white; 
+            border: none; 
+            padding: 12px 20px; 
+            border-radius: 25px; 
+            cursor: pointer; 
+            font-size: 14px; 
+            box-shadow: 0 4px 15px rgba(108, 92, 231, 0.3); 
+            transition: all 0.3s; 
+            min-width: 100px; 
+        }
+        .team-container { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 15px; 
+            height: 80vh; 
+            padding: 10px; 
+        }
+        .team { 
+            background: rgba(255, 255, 255, 0.95); 
+            border-radius: 15px; 
+            padding: 15px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1); 
+            overflow-y: auto; 
+        }
+        #team1 { border: 4px solid #ff6b6b; } 
+        #team2 { border: 4px solid #4d8af0; }
+        .word-grid { 
+            display: grid; 
+            grid-template-columns: repeat(4, 1fr); 
+            gap: 8px; 
+            padding: 8px; 
+        }
+        .word-card { 
+            border-radius: 12px; 
+            padding: 15px; 
+            min-height: 90px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            cursor: pointer; 
+            transition: all 0.2s; 
+            user-select: none; 
+        }
+        .en-card { 
+            background: linear-gradient(135deg, #6c5ce7, #8577eb); 
+            color: white; 
+            font-size: 20px; 
+        }
+        .zh-card { 
+            background: linear-gradient(135deg, #ff7675, #ff8787); 
+            color: white; 
+            font-size: 20px; 
+        }
+        .selected { 
+            box-shadow: 0 0 0 3px #fff, 0 0 0 6px #a363d9; 
+        }
+        .matched { 
+            animation: disappear 0.3s forwards; 
+            pointer-events: none; 
+        }
+        @keyframes disappear { 
+            0% { transform: scale(1); opacity: 1; } 
+            100% { transform: scale(0); opacity: 0; } 
+        }
+        #timer { 
+            font-size: 28px; 
+            color: #2d3436; 
+            margin: 15px 0; 
+            font-weight: bold; 
+        }
+        #winner { 
+            position: fixed; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            font-size: 48px; 
+            color: white; 
+            background: linear-gradient(135deg, #6c5ce7, #ff7675); 
+            padding: 25px 50px; 
+            border-radius: 25px; 
+            box-shadow: 0 15px 30px rgba(0,0,0,0.2); 
+            display: none; 
+        }
+        .modal { 
+            display: none; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0,0,0,0.5); 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 1000; 
+        }
+        .modal-content { 
+            background: white; 
+            padding: 25px; 
+            border-radius: 15px; 
+            width: 90%; 
+            max-width: 400px; 
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1); 
+        }
+        @media (max-width: 768px) { 
+            .word-grid { grid-template-columns: repeat(3, 1fr); } 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="control-panel">
+            <div class="btn-group">
+                <button class="game-btn" onclick="document.getElementById('wordFile').click()">📁导入</button>
+                <button class="game-btn" onclick="showAddWordModal()">➕添加</button>
+                <button class="game-btn" onclick="startGame()">▶️开始</button>
+                <button class="game-btn" onclick="resetGame()">🔄重置</button>
+                <button class="game-btn" id="musicBtn" onclick="toggleMusic()">🎵播放</button>
+            </div>
+            <div id="timer">00:00</div>
+        </div>
+        
+        <div class="team-container">
+            <div class="team" id="team1"><h2 style="color: #ff6b6b; margin: 8px 0; font-size: 18px;">红队 🚩</h2><div class="word-grid" id="words1"></div></div>
+            <div class="team" id="team2"><h2 style="color: #4d8af0; margin: 8px 0; font-size: 18px;">蓝队 🏴</h2><div class="word-grid" id="words2"></div></div>
+        </div>
+    </div>
+
+    <div id="winner"></div>
+    <input type="file" id="wordFile" accept=".xlsx, .xls" hidden>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+
+    <audio id="bgm" loop>
+        <source src="music/bgm.mp3" type="audio/mpeg">
+        您的浏览器不支持音频播放
+      </audio>
+
+    <div id="addWordModal" class="modal">
+        <div class="modal-content">
+            <h2 style="margin: 0 0 15px 0; font-size: 20px;">批量添加词汇</h2>
+            <div class="input-group">
+                <textarea id="batchInput" placeholder="每行格式：英文, 中文\n示例：\napple, 苹果\nbanana, 香蕉"></textarea>
+            </div>
+            <div style="display: flex; gap: 8px; margin-top: 15px;">
+                <button class="game-btn" onclick="addBatchWords()">添加</button>
+                <button class="game-btn" onclick="hideAddWordModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let words = [];
+        let timerId;
+        let startTime;
+        const synth = window.speechSynthesis;
+        let wordIdCounter = 0;
+        const teamSelections = { team1: null, team2: null };
+        let isMusicPlaying = false;
+const bgm = document.getElementById('bgm');
+const musicBtn = document.getElementById('musicBtn');
+
+        // 文件导入
+        document.getElementById('wordFile').addEventListener('change', async function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+        const buffer = await file.arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: 'array' });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rawData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+        words = rawData
+            .filter(row => row[0] && row[1]) // 过滤空行
+            .map((row, index) => ({
+                id: wordIdCounter++,
+                english: String(row[0]).trim(),
+                chinese: String(row[1]).trim()
+            }));
+
+        if (words.length === 0) throw new Error("Excel文件格式不正确");
+        renderWords();
+    } catch (error) {
+        alert(`导入失败: ${error.message || "请检查文件格式\n要求：第一列英文，第二列中文"}`);
+    }
+});
+
+         // 修改后的渲染函数
+         function renderWords() {
+            const createCards = (team) => 
+                words.flatMap(word => [
+                    { 
+                        type: 'en', 
+                        content: word.english, 
+                        id: word.id, 
+                        team 
+                    },
+                    { 
+                        type: 'zh', 
+                        content: word.chinese, 
+                        id: word.id, 
+                        team 
+                    }
+                ]).sort(() => Math.random() - 0.5);
+
+            const renderTeam = (containerId, cards) => {
+                const container = document.getElementById(containerId);
+                container.innerHTML = cards.map(card => `
+                    <div class="word-card ${card.type}-card" 
+                         data-id="${card.id}"
+                         data-type="${card.type}"
+                         data-team="${card.team}">
+                        ${card.content}
+                    </div>
+                `).join('');
+
+                container.querySelectorAll('.word-card').forEach(card => {
+                    card.addEventListener('click', handleCardClick);
+                    card.addEventListener('touchstart', handleTouchStart, { passive: false });
+                    card.addEventListener('touchend', handleTouchEnd);
+                });
+            };
+
+            // 两个队伍都显示全部单词
+            renderTeam('words1', createCards('team1'));
+            renderTeam('words2', createCards('team2'));
+        }
+
+          // 修改后的卡片点击处理
+          function handleCardClick(e) {
+            const card = e.target.closest('.word-card');
+            if (!card || card.classList.contains('matched')) return;
+
+            const team = card.dataset.team;
+            const selected = teamSelections[team];
+
+            if (!selected) {
+                teamSelections[team] = card;
+                card.classList.add('selected');
+                if (card.dataset.type === 'en') {
+                    speakWord(card.textContent);
+                }
+            } else {
+                if (selected.dataset.id === card.dataset.id && 
+                    selected.dataset.type !== card.dataset.type) {
+                    selected.classList.add('matched');
+                    card.classList.add('matched');
+                    checkTeamWin(team);
+                } else {
+                    selected.classList.remove('selected');
+                }
+                teamSelections[team] = null;
+            }
+        }
+
+        // 触摸事件处理
+        function handleTouchStart(e) {
+            e.preventDefault();
+            const card = e.target.closest('.word-card');
+            if (card && !card.classList.contains('matched')) {
+                handleCardClick({ target: card });
+            }
+        }
+
+        function handleTouchEnd(e) {
+            e.preventDefault();
+        }
+
+        // 辅助功能
+        function speakWord(word) {
+            if (!synth.speaking) {
+                const utterance = new SpeechSynthesisUtterance(word);
+                utterance.lang = 'en-US';
+                synth.speak(utterance);
+            }
+        }
+
+       // 修改开始游戏函数
+function startGame() {
+    clearInterval(timerId);
+    startTime = Date.now();
+    timerId = setInterval(updateTimer, 1000);
+    
+    // 尝试自动播放（需要用户交互后）
+    if (!isMusicPlaying && bgm.paused) {
+        bgm.play().then(() => {
+            isMusicPlaying = true;
+            musicBtn.textContent = '🎵暂停';
+        }).catch(() => {
+            musicBtn.textContent = '🎵播放';
+        });
+    }
+}
+
+        // 更新计时器函数独立出来
+function updateTimer() {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    document.getElementById('timer').textContent = 
+        `${String(Math.floor(elapsed / 60)).padStart(2, '0')}:${String(elapsed % 60).padStart(2, '0')}`;
+}
+        function resetGame() {
+            clearInterval(timerId);
+            document.getElementById('timer').textContent = '00:00';
+            document.getElementById('winner').style.display = 'none';
+            renderWords();
+        }
+
+        function checkTeamWin(team) {
+            const container = document.getElementById(team === 'team1' ? 'words1' : 'words2');
+            const remaining = container.querySelectorAll('.word-card:not(.matched)').length;
+            if (remaining === 0) endGame(team === 'team1' ? '红队 🚩' : '蓝队 🏴');
+        }
+
+        function endGame(winner) {
+            clearInterval(timerId);
+            const winnerEl = document.getElementById('winner');
+            winnerEl.textContent = `${winner} 胜利！🎉`;
+            winnerEl.style.display = 'block';
+        }
+
+        // 单词管理
+        function showAddWordModal() { 
+            document.getElementById('addWordModal').style.display = 'flex'; 
+        }
+        
+        function hideAddWordModal() { 
+            document.getElementById('addWordModal').style.display = 'none'; 
+        }
+
+        function addBatchWords() {
+            const input = document.getElementById('batchInput').value.trim();
+            if (!input) return alert("请输入内容！");
+            
+            const newWords = input.split('\n')
+                .map(line => line.trim().replace(/，/g, ','))
+                .filter(line => line)
+                .map(line => {
+                    const [english, ...chinese] = line.split(',').map(s => s.trim());
+                    return { 
+                        id: wordIdCounter++,
+                        english: english || '', 
+                        chinese: chinese.join(' ') || '' 
+                    };
+                })
+                .filter(word => word.english && word.chinese);
+
+            if (newWords.length === 0) return alert("格式错误！示例：apple, 苹果");
+            
+            words.push(...newWords);
+            renderWords();
+            hideAddWordModal();
+            alert(`成功添加 ${newWords.length} 个新词汇！`);
+        }
+        // 添加音乐切换函数
+function toggleMusic() {
+    isMusicPlaying = !isMusicPlaying;
+    if (isMusicPlaying) {
+        bgm.play();
+        musicBtn.textContent = '🎵暂停';
+    } else {
+        bgm.pause();
+        musicBtn.textContent = '🎵播放';
+    }
+}
+
+        // 初始化
+        renderWords();
+    </script>
+</body>
+</html>
